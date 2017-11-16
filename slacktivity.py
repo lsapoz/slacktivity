@@ -5,6 +5,7 @@ import requests
 
 SLACK_API_URL = "https://slack.com/api"
 RATE_LIMIT_SECONDS = 1
+MESSAGE_ACTIVITY_SUBTYPES = ['bot_message', 'file_share', 'file_comment', 'message_replied']
 
 
 class SlactivityGenerator:
@@ -18,8 +19,8 @@ class SlactivityGenerator:
 
         # find the first message which is an actual message (e.g. not a user leaving event)
         for message in messages:
-            # we're only interested in a posted message, which will not have a subtype
-            if 'subtype' not in message:
+            # message will either have subtype which counts as an activity, or have no subtype at all (normal message)
+            if 'subtype' not in message or message['subtype'] in MESSAGE_ACTIVITY_SUBTYPES:
                 return message
 
         return None
