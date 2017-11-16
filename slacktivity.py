@@ -8,7 +8,7 @@ RATE_LIMIT_SECONDS = 1
 MESSAGE_ACTIVITY_SUBTYPES = ['bot_message', 'file_share', 'file_comment', 'message_replied']
 
 
-class SlactivityGenerator:
+class SlacktivityGenerator:
     def __init__(self, token):
         self._token = token
         self._last_slack_request = 0
@@ -28,6 +28,10 @@ class SlactivityGenerator:
     def get_channels(self):
         data = self._get_slack_data('channels.list', 'exclude_archived=true')
         return data['channels']
+
+    def get_users(self):
+        data = self._get_slack_data('users.list')
+        return data['members']
 
     def _get_slack_data(self, method, *api_args):
         url = '{}/{}?token={}'.format(SLACK_API_URL, method, self._token)
@@ -50,9 +54,10 @@ if __name__ == "__main__":
     parser.add_argument('token', type=str, help='slack api token')
     args = parser.parse_args()
 
-    generator = SlactivityGenerator(args.token)
+    generator = SlacktivityGenerator(args.token)
 
     # print the date of the last message in each channel
+    users = generator.get_users()
     channels = generator.get_channels()
     for channel in channels:
         msg = generator.get_last_message(channel['id'])
@@ -61,4 +66,10 @@ if __name__ == "__main__":
         msg_ts = float(msg['ts']) if msg else float(channel['created'])
         msg_date = time.strftime('%Y-%m-%d', time.gmtime(msg_ts))
 
-        print('{},{}'.format(channel['name'], msg_date))
+        # get the name of the channel creator
+        user = next((user for user in users if user['id'] == channel['creator']))
+        creator_name = user.get('real_name')
+        if not creator_name:
+            creator_name = user['profile'].get('real_name')
+
+        print('{},{},{}'.format(channel['name'], creator_name, msg_date))
